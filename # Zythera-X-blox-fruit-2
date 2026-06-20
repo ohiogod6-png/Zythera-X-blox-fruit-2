@@ -1,0 +1,473 @@
+-- Services Initialization
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+
+-- Security Validation Configuration Setup
+local K = {
+    id = "UJCJJEW0A6Z",
+    k = false,
+    h = false,
+    t = 1778945559153,
+}
+
+if K.k then
+    local scriptKey = nil
+    pcall(function()
+        if _G and _G.script_key then
+            scriptKey = tostring(_G.script_key)
+        end
+    end)
+    if not scriptKey then
+        pcall(function()
+            if getgenv then
+                local genv = getgenv()
+                if genv and genv.script_key then
+                    scriptKey = tostring(genv.script_key)
+                end
+            end
+        end)
+    end
+    if not scriptKey or scriptKey == "" or scriptKey == "nil" then
+        return LocalPlayer:Kick("[Hide.lat] Key required. Set _G.script_key = 'YOUR_KEY' before running.")
+    end
+    local completed, response = pcall(function()
+        local requestFunc = syn and syn.request or request or http_request
+        if requestFunc then
+            return requestFunc({
+                Url = "https://hide.lat/api/free/validate",
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode({
+                    id = K.id,
+                    key = scriptKey,
+                    user = tostring(LocalPlayer.UserId),
+                    timestamp = os.time(),
+                }),
+            })
+        end
+    end)
+    if completed and (response and response.Body) then
+        local decoded = nil
+        pcall(function()
+            decoded = HttpService:JSONDecode(response.Body)
+        end)
+        if decoded and decoded.error then
+            return LocalPlayer:Kick("[Hide.lat] " .. tostring(decoded.error))
+        end
+    elseif K.k then
+        return LocalPlayer:Kick("[Hide.lat] Could not validate key")
+    end
+end
+
+-- Optimization Service Cache Setup
+local ServiceCache = setmetatable({}, { 
+    __index = function(self, key)
+        local service = game:GetService(key)
+        rawset(self, key, service)
+        return service
+    end 
+})
+
+local Http = ServiceCache.HttpService
+local FolderName = "Zythera-X"
+local FileName = "Settings.json"
+local SettingsPath = FolderName .. "/" .. FileName
+
+if makefolder and not isfolder(FolderName) then
+    makefolder(FolderName)
+end
+
+_G.SaveData = _G.SaveData or {}
+
+function SaveSettings()
+    if not writefile then return false end
+    local success = pcall(function()
+        local encoded = Http:JSONEncode(_G.SaveData)
+        writefile(SettingsPath, encoded)
+    end)
+    return success
+end
+
+function LoadSettings()
+    if not (isfile and isfile(SettingsPath)) then return false end
+    local success, result = pcall(function()
+        local content = readfile(SettingsPath)
+        return Http:JSONDecode(content)
+    end)
+    if success and result then
+        _G.SaveData = result
+        return true
+    end
+    return false
+end
+
+function GetSetting(key, default)
+    return _G.SaveData[key] ~= nil and _G.SaveData[key] or default
+end
+
+LoadSettings()
+
+local CollectionService = ServiceCache.CollectionService
+local ReplicatedStorage = ServiceCache.ReplicatedStorage
+local CommEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommE")
+
+_G.AutoKen = false
+local function HasKenTag()
+    local char = LocalPlayer.Character
+    return char and CollectionService:HasTag(char, "Ken")
+end
+
+task.spawn(function()
+    while _G.AutoKen do
+        task.wait(0.2)
+        if not HasKenTag() then
+            pcall(function()
+                CommEvent:FireServer("Ken", true)
+            end)
+        end
+    end
+end)
+
+local targetTeam = "Marines"
+if not LocalPlayer.Team or LocalPlayer.Team.Name ~= targetTeam then
+    pcall(function()
+        ReplicatedStorage.Remotes.CommF_:InvokeServer("SetTeam", targetTeam)
+    end)
+end
+
+-- Render and Lighting Overrides
+local Lighting = ServiceCache.Lighting
+Lighting.Ambient = Color3.new(0.695, 0.695, 0.695)
+Lighting.ColorShift_Bottom = Color3.new(0.695, 0.695, 0.695)
+Lighting.ColorShift_Top = Color3.new(0.695, 0.695, 0.695)
+Lighting.Brightness = 2
+Lighting.FogEnd = 10000000000.0
+
+-- Environment Initialization Safety Gate
+repeat
+    local mainGui = LocalPlayer.PlayerGui:FindFirstChild("Main")
+    local loadingGui = mainGui and mainGui:FindFirstChild("Loading")
+    task.wait()
+until game:IsLoaded() and not (loadingGui and loadingGui.Visible)
+
+-- Global Reference Declarations
+ply = ServiceCache.Players
+plr = ply.LocalPlayer
+replicated = ServiceCache.ReplicatedStorage
+TeleportService = ServiceCache.TeleportService
+TW = ServiceCache.TweenService
+M = ServiceCache.Lighting
+Enemies = workspace.Enemies
+vim1 = ServiceCache.VirtualInputManager
+vim2 = ServiceCache.VirtualUser
+TeamSelf = plr.Team
+RunSer = ServiceCache.RunService
+Stats = ServiceCache.Stats
+
+Boss = {}
+BringConnections = {}
+MaterialList = {}
+NPCList = {}
+shouldTween = false
+SoulGuitar = false
+KenTest = true
+debug = false
+Brazier1 = false
+Brazier2 = false
+Brazier3 = false
+Sec = 0.1
+ClickState = 0
+Num_self = 25
+
+-- Dynamic Environment Evaluation Handlers
+local function GetRoot()
+    return plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+end
+
+local function GetEnergy()
+    local energyObj = plr.Character and plr.Character:FindFirstChild("Energy")
+    return energyObj and energyObj.Value or 0
+end
+
+-- World Detection Architecture
+local Q = game.PlaceId
+if Q == 2753915549 or Q == 85211729168715 then
+    World1 = true
+elseif Q == 4442272183 or Q == 79091703265657 then
+    World2 = true
+elseif Q == 7449423635 or Q == 100117331123089 then
+    World3 = true
+else
+    plr:Kick("❌ Error Blox Fruits - World not recognized")
+end
+
+Sea = World1 or World2 or World3
+
+Marines = function()
+    replicated.Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+end
+Pirates = function()
+    replicated.Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+end
+
+-- Boss lists initialization
+if World1 then
+    Boss = {"The Gorilla King", "Bobby", "The Saw", "Yeti", "Mob Leader", "Vice Admiral", "Saber Expert", "Warden", "Chief Warden", "Swan", "Magma Admiral", "Fishman Lord", "Wysper", "Thunder God", "Cyborg", "Ice Admiral", "Greybeard"}
+elseif World2 then
+    Boss = {"Diamond", "Jeremy", "Fajita", "Don Swan", "Smoke Admiral", "Awakened Ice Admiral", "Tide Keeper", "Darkbeard", "Cursed Captain", "Order"}
+elseif World3 then
+    Boss = {"Stone", "Hydra Leader", "Kilo Admiral", "Captain Elephant", "Beautiful Pirate", "Cake Queen", "Longma", "Soul Reaper"}
+end
+
+-- Material lists initialization
+if World1 then
+    MaterialList = {"Leather + Scrap Metal", "Angel Wings", "Magma Ore", "Fish Tail"}
+elseif World2 then
+    MaterialList = {"Leather + Scrap Metal", "Radioactive Material", "Ectoplasm", "Mystic Droplet", "Magma Ore", "Vampire Fang"}
+elseif World3 then
+    MaterialList = {"Scrap Metal", "Demonic Wisp", "Conjured Cocoa", "Dragon Scale", "Gunpowder", "Fish Tail", "Mini Tusk"}
+end
+
+local fruitList = {"Flame", "Ice", "Quake", "Light", "Dark", "String", "Rumble", "Magma", "Human: Buddha", "Sand", "Bird: Phoenix", "Dough"}
+
+local monsterList = {
+    ["Pirate Millionaire"] = CFrame.new(-712.82727050781, 98.577049255371, 5711.9541015625),
+    ["Pistol Billionaire"] = CFrame.new(-723.43316650391, 147.42906188965, 5931.9931640625),
+    ["Dragon Crew Warrior"] = CFrame.new(7021.5043945312, 55.762702941895, -730.12908935547),
+    ["Dragon Crew Archer"] = CFrame.new(6625, 378, 244),
+    ["Female Islander"] = CFrame.new(4692.7939453125, 797.97668457031, 858.84802246094),
+    ["Venomous Assailant"] = CFrame.new(4902, 670, 39),
+    ["Marine Commodore"] = CFrame.new(2401, 123, -7589),
+    ["Marine Rear Admiral"] = CFrame.new(3588, 229, -7085),
+    ["Fishman Raider"] = CFrame.new(-10941, 332, -8760),
+    ["Fishman Captain"] = CFrame.new(-11035, 332, -9087),
+    ["Forest Pirate"] = CFrame.new(-13446, 413, -7760),
+    ["Mythological Pirate"] = CFrame.new(-13510, 584, -6987),
+    ["Jungle Pirate"] = CFrame.new(-11778, 426, -10592),
+    ["Musketeer Pirate"] = CFrame.new(-13282, 496, -9565),
+    ["Reborn Skeleton"] = CFrame.new(-8764, 142, 5963),
+    ["Living Zombie"] = CFrame.new(-10227, 421, 6161),
+    ["Demonic Soul"] = CFrame.new(-9579, 6, 6194),
+    ["Posessed Mummy"] = CFrame.new(-9579, 6, 6194),
+    ["Peanut Scout"] = CFrame.new(-1993, 187, -10103),
+    ["Peanut President"] = CFrame.new(-2215, 159, -10474),
+    ["Ice Cream Chef"] = CFrame.new(-877, 118, -11032),
+    ["Ice Cream Commander"] = CFrame.new(-877, 118, -11032),
+    ["Cookie Crafter"] = CFrame.new(-2021, 38, -12028),
+    ["Cake Guard"] = CFrame.new(-2024, 38, -12026),
+    ["Baking Staff"] = CFrame.new(-1932, 38, -12848),
+    ["Head Baker"] = CFrame.new(-1932, 38, -12848),
+    ["Cocoa Warrior"] = CFrame.new(95, 73, -12309),
+    ["Chocolate Bar Battler"] = CFrame.new(647, 42, -12401),
+    ["Sweet Thief"] = CFrame.new(116, 36, -12478),
+    ["Candy Rebel"] = CFrame.new(47, 61, -12889),
+    Ghost = CFrame.new(5251, 5, 1111),
+}EquipWeapon = function(weaponName)
+    if not weaponName then return end
+    if plr.Backpack:FindFirstChild(weaponName) then
+        local humanoid = plr.Character and plr.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:EquipTool(plr.Backpack:FindFirstChild(weaponName))
+        end
+    end
+end
+
+weaponSc = function(toolTip)
+    for _, item in pairs(plr.Backpack:GetChildren()) do
+        if item:IsA("Tool") and item.ToolTip == toolTip then
+            EquipWeapon(item.Name)
+        end
+    end
+end
+
+-- Safety Logging and Modification Hooks
+pcall(function() hookfunction(require(ReplicatedStorage.Effect.Container.Death), function() end) end)
+pcall(function() hookfunction(require(ReplicatedStorage:WaitForChild("GuideModule")).ChangeDisplayedNPC, function() end) end)
+pcall(function() hookfunction(error, function() end) end)
+pcall(function() hookfunction(warn, function() end) end)
+
+pcall(function()
+    local waterScript = LocalPlayer.PlayerScripts:FindFirstChild("WaterCFrame")
+    if waterScript then waterScript.Disabled = true end
+end)
+
+if workspace:FindFirstChild("Rocks") then
+    workspace.Rocks:Destroy()
+end
+
+pcall(function()
+    if workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("Foam;") then
+        workspace._WorldOrigin["Foam;"]:Destroy()
+    end
+end)
+
+-- Automation Engine Helpers
+local d = {}
+d.__index = d
+
+d.Alive = function(target)
+    if not target then return false end
+    local humanoid = target:FindFirstChild("Humanoid")
+    return humanoid and humanoid.Health > 0
+end
+
+d.Pos = function(target, radius)
+    local rootPart = GetRoot()
+    if not rootPart or not target or not target:FindFirstChild("HumanoidRootPart") then return false end
+    return (rootPart.Position - target.HumanoidRootPart.Position).Magnitude <= radius
+end
+
+d.Dist = function(target, radius)
+    local rootPart = GetRoot()
+    if not rootPart or not target or not target:FindFirstChild("HumanoidRootPart") then return false end
+    return (rootPart.Position - target.HumanoidRootPart.Position).KeepZeroY().Magnitude <= radius
+end
+
+d.DistH = function(target, radius)
+    local rootPart = GetRoot()
+    if not rootPart or not target or not target:FindFirstChild("HumanoidRootPart") then return false end
+    return (rootPart.Position - target.HumanoidRootPart.Position).Magnitude > radius
+end
+
+_G.MobHeight = _G.MobHeight or 30
+_G.SaveData.BringMobs_Save = true
+_G.BringRadius = 200
+local bringOffset = 0
+
+d.Kill = function(target, radius)
+    if not (target and radius) then return end
+    local enemyRoot = target:FindFirstChild("HumanoidRootPart")
+    local enemyHumanoid = target:FindFirstChild("Humanoid")
+    if not enemyRoot or not enemyHumanoid or enemyHumanoid.Health <= 0 then return end
+    
+    local rootPart = GetRoot()
+    if not rootPart then return end
+    
+    if not target:GetAttribute("Locked") then
+        target:SetAttribute("Locked", enemyRoot.CFrame)
+    end
+    
+    local lockedCFrame = target:GetAttribute("Locked")
+    PosMon = lockedCFrame.Position
+    _B = true
+    
+    if _G.SaveData.BringMobs_Save then
+        local cluster = {}
+        for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+            local eRoot = enemy:FindFirstChild("HumanoidRootPart")
+            local eHum = enemy:FindFirstChild("Humanoid")
+            if enemy.Name == target.Name and eRoot and eHum and eHum.Health > 0 then
+                if (eRoot.Position - rootPart.Position).Magnitude <= (_G.BringRadius or 200) then
+                    table.insert(cluster, enemy)
+                end
+            end
+        end
+        
+        bringOffset = bringOffset + 0.3
+        local spacing = 10
+        local totalMobs = #cluster
+        for index, enemy in ipairs(cluster) do
+            local eRoot = enemy.HumanoidRootPart
+            local eHum = enemy.Humanoid
+            eHum.WalkSpeed = 0
+            eHum.JumpPower = 0
+            eHum:ChangeState(11)
+            eRoot.CanCollide = false
+            eRoot.Size = Vector3.new(60, 60, 60)
+            eRoot.Transparency = 1
+            
+            if index == 1 then
+                eRoot.CFrame = lockedCFrame
+            else
+                local angle = ((index / totalMobs) * math.pi) * 2 + bringOffset
+                local offsetVector = Vector3.new(math.cos(angle) * spacing, 0, math.sin(angle) * spacing)
+                eRoot.CFrame = lockedCFrame + offsetVector
+            end
+        end
+    end
+    
+    BringEnemy()
+    EquipWeapon(_G.SelectWeapon)
+    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if not tool then return end
+    _tp(lockedCFrame * CFrame.new(0, _G.MobHeight, 0))
+end
+
+_G.FruitSkills = {Z = false, X = false, C = false, V = false, F = false}
+UseFruitSkills = function()
+    weaponSc("Blox Fruit")
+    if _G.FruitSkills.Z then Useskills("Blox Fruit", "Z") end
+    if _G.FruitSkills.X then Useskills("Blox Fruit", "X") end
+    if _G.FruitSkills.C then Useskills("Blox Fruit", "C") end
+    if _G.FruitSkills.V then Useskills("Blox Fruit", "V") end
+    if _G.FruitSkills.F then
+        vim1:SendKeyEvent(true, "F", false, game)
+        vim1:SendKeyEvent(false, "F", false, game)
+    end
+end
+
+-- Complete Validation Engine Handlers
+local function IsActiveFarm()
+    if _G.FarmPriorityElf or _G.FarmElfLevelCustom or _G.FarmMastery_S then return true end
+    return _G.StartFarm and (_G.Level or _G.AutoFarm_Bone or _G.AutoFarm_Cake or _G.FarmMastery_Dev)
+end
+
+BringEnemy = function()
+    if not IsActiveFarm() or not _B then return end
+    local rootPart = GetRoot()
+    if not rootPart then return end
+    
+    pcall(function() sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge) end)
+    local origin = PosMon or rootPart.Position
+    local enemies = workspace.Enemies:GetChildren()
+    local count = 0
+    
+    for _, enemy in ipairs(enemies) do
+        if count >= _G.MaxBringMobs then break end
+        local hum = enemy:FindFirstChild("Humanoid")
+        local root = enemy:FindFirstChild("HumanoidRootPart")
+        if hum and root and hum.Health > 0 then
+            local distance = (root.Position - origin).Magnitude
+            if distance <= _G.BringRange and not root:GetAttribute("Tweening") then
+                count = count + 2
+                root:SetAttribute("Tweening", true)
+                local tween = TW:Create(root, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {CFrame = CFrame.new(origin)})
+                tween:Play()
+                tween.Completed:Once(function()
+                    if root then root:SetAttribute("Tweening", false) end
+                end)
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        if IsActiveFarm() then
+            _B = true
+            BringEnemy()
+            task.wait(1)
+            _B = false
+            task.wait(1)
+        else
+            _B = false
+            task.wait(1)
+        end
+    end
+end)
+
+Useskills = function(weaponType, key)
+    if weaponType == "Melee" then
+        weaponSc("Melee")
+        if key == "Z" or key == "X" or key == "C" then
+            vim1:SendKeyEvent(true, key, false, game)
+            vim1:SendKeyEvent(false, key, false, game)
+        end
+    elseif weaponType == "Sword" or weaponType == "Gun" or weaponType == "Blox Fruit" then
+        weaponSc(weaponType)
+        vim1:SendKeyEvent(true, key, false, game)
+        vim1:SendKeyEvent(false, key, false, game)
+    end
+end
+
